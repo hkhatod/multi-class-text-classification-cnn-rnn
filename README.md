@@ -24,7 +24,7 @@
 
 ### Predict:
   - Command: python3 predict.py ./trained_results_dir/ new_data.csv
-  - Example: ```python3 predict.py ./trained_results_1478563595/ ./data/small_samples.csv```
+  - Example: ```python3 predict.py ./<checkpoint dir>/ ./data/small_samples.csv```
   
 ### Reference:
  - [Implement a cnn for text classification in tensorflow](http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/)

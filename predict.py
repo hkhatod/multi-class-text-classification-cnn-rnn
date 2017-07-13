@@ -1,3 +1,8 @@
+#pylint: disable=I0011
+#pylint: disable=C0111
+#pylint: disable=C0301
+#pylint: disable=C0103
+#pylint: disable=W0312
 import os
 import sys
 import json
@@ -80,36 +85,34 @@ def predict_unseen_data():
 		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 		sess = tf.Session(config=session_conf)
 		with sess.as_default():
-			cnn_rnn = TextCNNRNN(
-				embedding_mat = embedding_mat,
-				non_static = params['non_static'],
-				hidden_unit = params['hidden_unit'],
-				sequence_length = len(x_test[0]),
-				max_pool_size = params['max_pool_size'],
-				filter_sizes = map(int, params['filter_sizes'].split(",")),
-				num_filters = params['num_filters'],
-				num_classes = len(labels),
-				embedding_size = params['embedding_dim'],
-				l2_reg_lambda = params['l2_reg_lambda'])
+			cnn_rnn = TextCNNRNN(embedding_mat=embedding_mat,
+			                     non_static=params['non_static'],
+                                 hidden_unit=params['hidden_unit'],
+			                     sequence_length=len(x_test[0]),
+			                     max_pool_size=params['max_pool_size'],
+			                     filter_sizes=map(int, params['filter_sizes'].split(",")),
+			                     num_filters=params['num_filters'],
+			                     num_classes=len(labels),
+			                     embedding_size=params['embedding_dim'],
+			                     l2_reg_lambda=params['l2_reg_lambda'])
 
 			def real_len(batches):
 				return [np.ceil(np.argmin(batch + [0]) * 1.0 / params['max_pool_size']) for batch in batches]
 
 			def predict_step(x_batch):
-				feed_dict = {
-					cnn_rnn.input_x: x_batch,
-					cnn_rnn.dropout_keep_prob: 1.0,
-					cnn_rnn.batch_size: len(x_batch),
-					cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-					cnn_rnn.real_len: real_len(x_batch),
-				}
+				feed_dict = {cnn_rnn.input_x: x_batch,
+				             cnn_rnn.dropout_keep_prob: 1.0,
+                             cnn_rnn.batch_size: len(x_batch),
+                             cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
+                             cnn_rnn.real_len: real_len(x_batch),}
 				predictions = sess.run([cnn_rnn.predictions], feed_dict)
 				return predictions
 
-			checkpoint_file = trained_dir + 'best_model.ckpt'
-			saver = tf.train.Saver(tf.all_variables())
-			saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file[:-5]))
-			saver.restore(sess, checkpoint_file)
+			checkpoint_file = trained_dir + 'model-2200.meta'
+			saver = tf.train.Saver(tf.global_variables())
+			saver = tf.train.import_meta_graph(checkpoint_file)
+			#saver.restore(sess, "{}.meta".format(checkpoint_file[:-5]))
+			saver.restore(sess, tf.train.latest_checkpoint(trained_dir))
 			logging.critical('{} has been loaded'.format(checkpoint_file))
 
 			batches = data_helper.batch_iter(list(x_test), params['batch_size'], 1, shuffle=False)

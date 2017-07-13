@@ -1,3 +1,9 @@
+#pylint: disable=I0011
+#pylint: disable=C0111
+#pylint: disable=C0301
+#pylint: disable=C0304
+#pylint: disable=C0103
+#pylint: disable=W0312
 import os
 import sys
 import json
@@ -24,7 +30,7 @@ def train_cnn_rnn():
 	# Assign a 300 dimension vector to each word
 	word_embeddings = data_helper.load_embeddings(vocabulary)
 	embedding_mat = [word_embeddings[word] for index, word in enumerate(vocabulary_inv)]
-	embedding_mat = np.array(embedding_mat, dtype = np.float32)
+	embedding_mat = np.array(embedding_mat, dtype=np.float32)
 
 	# Split the original dataset into train set and test set
 	x, x_test, y, y_test = train_test_split(x_, y_, test_size=0.1)
@@ -37,27 +43,26 @@ def train_cnn_rnn():
 
 	# Create a directory, everything related to the training will be saved in this directory
 	timestamp = str(int(time.time()))
-	trained_dir = './trained_results_' + timestamp + '/'
-	if os.path.exists(trained_dir):
-		shutil.rmtree(trained_dir)
-	os.makedirs(trained_dir)
+	# trained_dir = './trained_results_' + timestamp + '/'
+	# if os.path.exists(trained_dir):
+	# 	shutil.rmtree(trained_dir)
+	# os.makedirs(trained_dir)
 
 	graph = tf.Graph()
 	with graph.as_default():
 		session_conf = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 		sess = tf.Session(config=session_conf)
 		with sess.as_default():
-			cnn_rnn = TextCNNRNN(
-				embedding_mat=embedding_mat,
-				sequence_length=x_train.shape[1],
-				num_classes = y_train.shape[1],
-				non_static=params['non_static'],
-				hidden_unit=params['hidden_unit'],
-				max_pool_size=params['max_pool_size'],
-				filter_sizes=map(int, params['filter_sizes'].split(",")),
-				num_filters = params['num_filters'],
-				embedding_size = params['embedding_dim'],
-				l2_reg_lambda = params['l2_reg_lambda'])
+			cnn_rnn = TextCNNRNN(embedding_mat=embedding_mat,
+			                     sequence_length=x_train.shape[1],
+                                 num_classes=y_train.shape[1],
+                                 non_static=params['non_static'],
+                                 hidden_unit=params['hidden_unit'],
+                                 max_pool_size=params['max_pool_size'],
+                                 filter_sizes=map(int, params['filter_sizes'].split(",")),
+                                 num_filters=params['num_filters'],
+                                 embedding_size=params['embedding_dim'],
+                                 l2_reg_lambda=params['l2_reg_lambda'])
 
 			global_step = tf.Variable(0, name='global_step', trainable=False)
 			optimizer = tf.train.RMSPropOptimizer(1e-3, decay=0.9)
@@ -75,31 +80,27 @@ def train_cnn_rnn():
 				return [np.ceil(np.argmin(batch + [0]) * 1.0 / params['max_pool_size']) for batch in batches]
 
 			def train_step(x_batch, y_batch):
-				feed_dict = {
-					cnn_rnn.input_x: x_batch,
-					cnn_rnn.input_y: y_batch,
-					cnn_rnn.dropout_keep_prob: params['dropout_keep_prob'],
-					cnn_rnn.batch_size: len(x_batch),
-					cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-					cnn_rnn.real_len: real_len(x_batch),
-				}
+				feed_dict = {cnn_rnn.input_x: x_batch,
+                             cnn_rnn.input_y: y_batch,
+                             cnn_rnn.dropout_keep_prob: params['dropout_keep_prob'],
+                             cnn_rnn.batch_size: len(x_batch),
+                             cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
+                             cnn_rnn.real_len: real_len(x_batch),}
 				_, step, loss, accuracy = sess.run([train_op, global_step, cnn_rnn.loss, cnn_rnn.accuracy], feed_dict)
 
 			def dev_step(x_batch, y_batch):
-				feed_dict = {
-					cnn_rnn.input_x: x_batch,
-					cnn_rnn.input_y: y_batch,
-					cnn_rnn.dropout_keep_prob: 1.0,
-					cnn_rnn.batch_size: len(x_batch),
-					cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
-					cnn_rnn.real_len: real_len(x_batch),
-				}
-				step, loss, accuracy, num_correct, predictions = sess.run(
-					[global_step, cnn_rnn.loss, cnn_rnn.accuracy, cnn_rnn.num_correct, cnn_rnn.predictions], feed_dict)
+				feed_dict = {cnn_rnn.input_x: x_batch,
+                             cnn_rnn.input_y: y_batch,
+                             cnn_rnn.dropout_keep_prob: 1.0,
+                             cnn_rnn.batch_size: len(x_batch),
+                             cnn_rnn.pad: np.zeros([len(x_batch), 1, params['embedding_dim'], 1]),
+                             cnn_rnn.real_len: real_len(x_batch),}
+				step, loss, accuracy, num_correct, predictions = sess.run([global_step, cnn_rnn.loss, cnn_rnn.accuracy,
+				                                                           cnn_rnn.num_correct, cnn_rnn.predictions], feed_dict)
 				return accuracy, loss, num_correct, predictions
 
-			saver = tf.train.Saver(tf.all_variables())
-			sess.run(tf.initialize_all_variables())
+			saver = tf.train.Saver(tf.global_variables())
+			sess.run(tf.global_variables_initializer())
 
 			# Training starts here
 			train_batches = data_helper.batch_iter(list(zip(x_train, y_train)), params['batch_size'], params['num_epochs'])
@@ -141,20 +142,20 @@ def train_cnn_rnn():
 			logging.critical('Accuracy on test set: {}'.format(float(total_test_correct) / len(y_test)))
 
 	# Save trained parameters and files since predict.py needs them
-	with open(trained_dir + 'words_index.json', 'w') as outfile:
+	with open(checkpoint_prefix + 'words_index.json', 'w') as outfile:
 		json.dump(vocabulary, outfile, indent=4, ensure_ascii=False)
-	with open(trained_dir + 'embeddings.pickle', 'wb') as outfile:
+	with open(checkpoint_prefix + 'embeddings.pickle', 'wb') as outfile:
 		pickle.dump(embedding_mat, outfile, pickle.HIGHEST_PROTOCOL)
-	with open(trained_dir + 'labels.json', 'w') as outfile:
+	with open(checkpoint_prefix + 'labels.json', 'w') as outfile:
 		json.dump(labels, outfile, indent=4, ensure_ascii=False)
 
-	os.rename(path, trained_dir + 'best_model.ckpt')
-	os.rename(path + '.meta', trained_dir + 'best_model.meta')
-	shutil.rmtree(checkpoint_dir)
-	logging.critical('{} has been removed'.format(checkpoint_dir))
+	#os.rename(path, trained_dir + 'best_model.ckpt')
+	#os.rename(path + '.meta', trained_dir + 'best_model.meta')
+	#shutil.rmtree(checkpoint_dir)
+	#logging.critical('{} has been removed'.format(checkpoint_dir))
 
 	params['sequence_length'] = x_train.shape[1]
-	with open(trained_dir + 'trained_parameters.json', 'w') as outfile:
+	with open(checkpoint_prefix + 'trained_parameters.json', 'w') as outfile:
 		json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
 
 if __name__ == '__main__':

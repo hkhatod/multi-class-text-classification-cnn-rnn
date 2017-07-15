@@ -108,11 +108,12 @@ def predict_unseen_data():
 				predictions = sess.run([cnn_rnn.predictions], feed_dict)
 				return predictions
 
-			checkpoint_file = trained_dir + 'model-2200.meta'
+			checkpoint_file = tf.train.latest_checkpoint(trained_dir)
+			logging.critical('Loaded the trained model: {}'.format(checkpoint_file))
 			saver = tf.train.Saver(tf.global_variables())
-			saver = tf.train.import_meta_graph(checkpoint_file)
+			saver = tf.train.import_meta_graph("{}.meta".format(checkpoint_file))
 			#saver.restore(sess, "{}.meta".format(checkpoint_file[:-5]))
-			saver.restore(sess, tf.train.latest_checkpoint(trained_dir))
+			saver.restore(sess, checkpoint_file)
 			logging.critical('{} has been loaded'.format(checkpoint_file))
 
 			batches = data_helper.batch_iter(list(x_test), params['batch_size'], 1, shuffle=False)

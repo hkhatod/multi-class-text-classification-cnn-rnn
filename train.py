@@ -142,11 +142,11 @@ def train_cnn_rnn():
 			logging.critical('Accuracy on test set: {}'.format(float(total_test_correct) / len(y_test)))
 
 	# Save trained parameters and files since predict.py needs them
-	with open(checkpoint_prefix + 'words_index.json', 'w') as outfile:
+	with open(checkpoint_dir + 'words_index.json', 'w') as outfile:
 		json.dump(vocabulary, outfile, indent=4, ensure_ascii=False)
-	with open(checkpoint_prefix + 'embeddings.pickle', 'wb') as outfile:
+	with open(checkpoint_dir + 'embeddings.pickle', 'wb') as outfile:
 		pickle.dump(embedding_mat, outfile, pickle.HIGHEST_PROTOCOL)
-	with open(checkpoint_prefix + 'labels.json', 'w') as outfile:
+	with open(checkpoint_dir + 'labels.json', 'w') as outfile:
 		json.dump(labels, outfile, indent=4, ensure_ascii=False)
 
 	#os.rename(path, trained_dir + 'best_model.ckpt')
@@ -155,7 +155,7 @@ def train_cnn_rnn():
 	#logging.critical('{} has been removed'.format(checkpoint_dir))
 
 	params['sequence_length'] = x_train.shape[1]
-	with open(checkpoint_prefix + 'trained_parameters.json', 'w') as outfile:
+	with open(checkpoint_dir + 'trained_parameters.json', 'w') as outfile:
 		json.dump(params, outfile, indent=4, sort_keys=True, ensure_ascii=False)
 
 if __name__ == '__main__':
